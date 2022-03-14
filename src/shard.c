@@ -154,7 +154,11 @@ uint32_t shard_get_next_ip(shard_t *shard)
 		if (candidate - 1 < zsend.max_index) {
 			shard->state.hosts_allowlisted++;
 			shard->iterations++;
-			return blocklist_lookup_index(candidate - 1);
+			uint32_t retval = blocklist_lookup_index(candidate - 1);
+			if ((htonl(retval)&0xFF) == 1) {
+				return retval;
+			}
+			// return retval;
 		}
 		shard->state.hosts_blocklisted++;
 	}

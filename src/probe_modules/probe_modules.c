@@ -71,7 +71,7 @@ void fs_add_ip_fields(fieldset_t *fs, struct ip *ip)
 
 #define TIMESTR_LEN 55
 
-void fs_add_system_fields(fieldset_t *fs, int is_repeat, int in_cooldown)
+void fs_add_system_fields(fieldset_t *fs, int is_repeat, int in_cooldown, const struct timespec ts)
 {
 	fs_add_bool(fs, "repeat", is_repeat);
 	fs_add_bool(fs, "cooldown", in_cooldown);
@@ -79,7 +79,11 @@ void fs_add_system_fields(fieldset_t *fs, int is_repeat, int in_cooldown)
 	char *timestr = xmalloc(TIMESTR_LEN + 1);
 	char *timestr_ms = xmalloc(TIMESTR_LEN + 1);
 	struct timeval t;
-	gettimeofday(&t, NULL);
+
+	// gettimeofday(&t, NULL);
+    t.tv_sec = ts.tv_sec;
+    t.tv_usec = ts.tv_nsec / 1000;
+
 	struct tm *ptm = localtime(&t.tv_sec);
 	strftime(timestr, TIMESTR_LEN, "%Y-%m-%dT%H:%M:%S.%%03d%z", ptm);
 	snprintf(timestr_ms, TIMESTR_LEN, timestr, t.tv_usec / 1000);
