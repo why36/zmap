@@ -141,24 +141,26 @@ static inline uint32_t shard_get_next_elem(shard_t *shard)
 
 uint32_t shard_get_next_ip(shard_t *shard)
 {
+	static int round = ;
 	if (shard->current == ZMAP_SHARD_DONE) {
 		return ZMAP_SHARD_DONE;
 	}
 	while (1) {
 		uint32_t candidate = shard_get_next_elem(shard);
 		if (candidate == shard->params.last) {
-			shard->current = ZMAP_SHARD_DONE;
-			shard->iterations++;
-			return ZMAP_SHARD_DONE;
+			if (round == 0) {
+				shard->current = ZMAP_SHARD_DONE;
+				shard->iterations++;
+				return ZMAP_SHARD_DONE;
+			} else {
+				round --;
+				shard->current = shard->params.first;
+			}
 		}
 		if (candidate - 1 < zsend.max_index) {
 			shard->state.hosts_allowlisted++;
 			shard->iterations++;
-			uint32_t retval = blocklist_lookup_index(candidate - 1);
-			if ((htonl(retval)&0xFF) == 1) {
-				return retval;
-			}
-			// return retval;
+			return blocklist_lookup_index(candidate - 1);
 		}
 		shard->state.hosts_blocklisted++;
 	}

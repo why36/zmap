@@ -430,7 +430,6 @@ int send_run(sock_t st, shard_t *s)
 							}
 						} else {
 							any_sends_successful = 1;
-							/*
 							struct in_addr addr;
 							addr.s_addr =
 							    current_ip;
@@ -447,7 +446,6 @@ int send_run(sock_t st, shard_t *s)
 								    "send_packet succeeded for %s.",
 								    addr_str);
 							}
-							*/
 							break;
 						}
 					}
