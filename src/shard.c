@@ -141,7 +141,7 @@ static inline uint32_t shard_get_next_elem(shard_t *shard)
 
 uint32_t shard_get_next_ip(shard_t *shard)
 {
-	static int round = 180;
+	static int round = 299;
 	if (shard->current == ZMAP_SHARD_DONE) {
 		return ZMAP_SHARD_DONE;
 	}

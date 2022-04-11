@@ -1,19 +1,11 @@
-# rate=22000
-# rate=20000
-# rate=18000
-# rate=16000
-# rate=14000
-# rate=11000
-# rate=8000
-rate=5000
-# rate=2000
+rate=3600
 per_ip=1
 batch=1		# TBD
 coolTime=15
 sender_threads=1	# TBD
 
-which=184
-path="/root/data/server_0329"
+which=2
+path="/root/data/sh_0411/zmap"
 output_file="$path/rtt_$which"
 status_file="$path/status_$which"
 log_file="$path/log_$which"
