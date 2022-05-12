@@ -68,6 +68,15 @@ int udp_make_templated_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 			      ipaddr_n_t dst_ip, uint8_t ttl,
 			      uint32_t *validation, int probe_num, void *arg);
 
+int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
+			      ipaddr_n_t dst_ip, uint8_t ttl,
+			      uint32_t *validation, int probe_num, void *arg);
+
+void udp_process_latency_packet(const u_char *packet, UNUSED uint32_t len,
+			fieldset_t *fs,
+			UNUSED uint32_t *validation,
+			struct timespec ts);
+
 int udp_do_validate_packet(const struct ip *ip_hdr, uint32_t len,
 			   UNUSED uint32_t *src_ip,
 			   uint32_t *validation, int num_ports,

@@ -156,6 +156,7 @@ struct state_send {
 	uint32_t sendto_failures;
 	uint32_t max_index;
 	uint8_t **list_of_ips_pbm;
+	struct timeval starting;
 };
 extern struct state_send zsend;
 

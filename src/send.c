@@ -19,6 +19,8 @@
 #include <assert.h>
 #include <signal.h>
 
+#include <sys/time.h>
+
 #include "../lib/includes.h"
 #include "../lib/logger.h"
 #include "../lib/random.h"
@@ -195,6 +197,7 @@ iterator_t *send_init(void)
 	signal(SIGUSR1, sig_handler_increase_speed);
 	signal(SIGUSR2, sig_handler_decrease_speed);
 	zsend.start = now();
+	gettimeofday(&(zsend.starting), NULL); // init zsend.starting
 	return it;
 }
 

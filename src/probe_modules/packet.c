@@ -233,6 +233,56 @@ void fs_populate_icmp_from_iphdr(struct ip *ip, size_t len, fieldset_t *fs)
 	}
 }
 
+void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *fs, struct timespec ts)
+{
+	assert(ip && "no ip header provide to fs_populate_icmp_from_iphdr");
+	assert(fs && "no fieldset provided to fs_populate_icmp_from_iphdr");
+	struct icmp *icmp = get_icmp_header(ip, len);
+	assert(icmp);
+	struct ip *ip_inner = get_inner_ip_header(icmp, len);
+	fs_modify_string(fs, "saddr", make_ip_str(ip_inner->ip_dst.s_addr), 1);
+	fs_add_string(fs, "icmp_responder", make_ip_str(ip->ip_src.s_addr), 1);
+	fs_add_uint64(fs, "icmp_type", icmp->icmp_type);
+	fs_add_uint64(fs, "icmp_code", icmp->icmp_code);
+	// if (((icmp->icmp_type == ICMP_TIMXCEED) && (icmp->icmp_code == ICMP_TIMXCEED_INTRANS)) || (icmp->icmp_type == ICMP_UNREACH)) {
+	if (icmp->icmp_type == ICMP_UNREACH) {
+		if (ip_inner->ip_p == IPPROTO_UDP) {
+
+			struct udphdr *udp_header = (struct udphdr *) ((char *)ip_inner + 4 * ip_inner->ip_hl);
+			int timestamp = udp_header->uh_sum;
+			int elapsed = 
+				(int)((ts.tv_sec - zsend.starting.tv_sec) * 10000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/100);		// accuracy: 0.1 millisecond
+			//int elapsed = 
+			//	(int)((ts.tv_sec - zsend.starting.tv_sec) * 1000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/1000);		// accuracy: 1 millisecond
+			int rtt = 0;
+			if (elapsed >= timestamp) {
+				rtt = (elapsed - timestamp) % 65536;
+			} else if (udp_header->uh_sum== 0xffff) {
+				timestamp -= 65536;
+				rtt = elapsed - timestamp;
+			} else {
+				printf("Elapsed less than timestamp: %s; %d;%d;%d;\n", make_ip_str(ip_inner->ip_dst.s_addr), timestamp, elapsed, rtt);	
+			}
+			fs_add_uint64(fs, "icmp_timestamp", timestamp);
+			fs_add_uint64(fs, "icmp_elapsed", elapsed);
+			fs_add_uint64(fs, "icmp_rtt", rtt);
+
+			if (icmp->icmp_code <= ICMP_UNREACH_PRECEDENCE_CUTOFF) {
+				fs_add_constchar(fs, "icmp_unreach_str",
+						icmp_unreach_strings[icmp->icmp_code]);
+			} else {
+				fs_add_constchar(fs, "icmp_unreach_str", "unknown");
+			}
+		}
+	} else {
+		fs_add_uint64(fs, "icmp_timestamp", 0);
+		fs_add_uint64(fs, "icmp_elapsed", 0);
+		fs_add_uint64(fs, "icmp_rtt", 0);
+		fs_add_constchar(fs, "icmp_unreach_str", "unknown");
+	}
+
+}
+
 // Note: caller must free return value
 char *make_ip_str(uint32_t ip)
 {
@@ -262,3 +312,67 @@ const char *icmp_unreach_strings[] = {
     "host presdence violation",
 	"precedence cutoff"
 };
+
+unsigned short in_cksum(unsigned short *addr, int len) {
+    int nleft = len;
+    int sum = 0;
+    unsigned short *w = addr;
+    unsigned short answer = 0;
+
+    /*
+     * Our algorithm is simple, using a 32 bit accumulator (sum), we add
+     * sequential 16 bit words to it, and at the end, fold back all the carry
+     * bits from the top 16 bits into the lower 16 bits.
+     */
+    assert(addr);
+    while (nleft > 1) {
+        sum += *w++;
+        nleft -= 2;
+    }
+
+    /* 4mop up an odd byte, if necessary */
+    if (nleft == 1) {
+        *(unsigned char *)(&answer) = *(unsigned char *)w;
+        sum += answer;
+    }
+    /* 4add back carry outs from top 16 bits to low 16 bits */
+    sum = (sum >> 16) + (sum & 0xffff); /* add hi 16 to low 16 */
+    sum += (sum >> 16);         /* add carry */
+    answer = ~sum;              /* truncate to 16 bits */
+    return answer;
+}
+
+
+u_short p_cksum(struct ip *ip, u_short * data, int len) {
+    static struct ipovly ipo;
+    u_short sumh, sumd;
+    u_long sumt;
+
+    ipo.ih_pr = ip->ip_p;
+    ipo.ih_len = htons(len);
+    ipo.ih_src = ip->ip_src;
+    ipo.ih_dst = ip->ip_dst;
+
+    sumh = in_cksum((u_short *) & ipo, sizeof(ipo));    /* pseudo ip hdr cksum */
+    sumd = in_cksum((u_short *) data, len);     /* payload data cksum */
+    sumt = (sumh << 16) | (sumd);
+
+    return ~in_cksum((u_short *) & sumt, sizeof(sumt));
+}
+
+unsigned short compute_data(unsigned short start_cksum, unsigned short target_cksum) {
+    unsigned short answer = 0x0000;
+    /* per RFC, if computed checksum is 0, the value 0xFFFF is transmitted */
+    if (target_cksum == 0xFFFF)
+        target_cksum = 0x0000;
+    /* if the ones' complement of the target checksum is greater than
+     * the ones' complement of the starting checksum, use the overflow
+     * in the computation of IP/UDP checksum to keep result positive
+     */
+    if (~target_cksum > ~start_cksum){
+        answer = ~target_cksum - (~start_cksum);
+    }else{
+        answer = 0xFFFF - (~start_cksum) + (~target_cksum); 
+    }
+    return answer;
+}

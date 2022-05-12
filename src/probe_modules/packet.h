@@ -49,6 +49,9 @@
      .desc = "Source IP of ICMP_UNREACH messages"}, \
     {.name = "icmp_type", .type = "int", .desc = "icmp message type"}, \
     {.name = "icmp_code", .type = "int", .desc = "icmp message sub type code"}, \
+    {.name = "icmp_timestamp", .type = "int", .desc = "icmp timestamp: relative sending time"}, \
+    {.name = "icmp_elapsed", .type = "int", .desc = "icmp elapsed: relative receiving time"}, \
+    {.name = "icmp_rtt", .type = "int", .desc = "icmp rtt: absolute rtt, in 0.1 millisecond (10^-4 second)"}, \
     {.name = "icmp_unreach_str", \
      .type = "string", \
      .desc = "for icmp_unreach responses, the string version of icmp_code (e.g. network-unreach)"}
@@ -231,5 +234,21 @@ int icmp_helper_validate(const struct ip *ip_hdr, uint32_t len,
 void fs_add_null_icmp(fieldset_t *fs);
 
 void fs_populate_icmp_from_iphdr(struct ip *ip, size_t len, fieldset_t *fs);
+
+void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *fs, struct timespec ts);
+
+struct ipovly {
+    u_char          ih_x1;
+    u_char          ih_pr;
+    u_short         ih_len;
+    struct in_addr  ih_src;
+    struct in_addr  ih_dst;
+};
+
+unsigned short in_cksum(unsigned short *addr, int len); 
+
+u_short p_cksum(struct ip *ip, u_short * data, int len);
+
+unsigned short compute_data(unsigned short start_cksum, unsigned short target_cksum);
 
 #endif

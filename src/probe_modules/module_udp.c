@@ -37,7 +37,7 @@ static size_t udp_fixed_payload_len = 0;
 static udp_payload_template_t *udp_template = NULL;
 
 const char *udp_usage_error =
-    "unknown UDP probe specification (expected file:/path or text:STRING or hex:01020304 or template:/path or template-fields)";
+    "unknown UDP probe specification (expected file:/path or text:STRING or hex:01020304 or template:/path or template-fields or latency:02)";
 
 const unsigned char *charset_alphanum =
     (unsigned char
@@ -200,6 +200,20 @@ int udp_global_initialize(struct state_conf *conf)
 			}
 			udp_fixed_payload[i] = (n & 0xff);
 		}
+	} else if (strncmp(args, "latency", arg_name_len) == 0) {		// modified
+		udp_fixed_payload_len = strlen(c) / 2;
+		udp_fixed_payload = xmalloc(udp_fixed_payload_len);
+
+		unsigned int n;
+		for (size_t i = 0; i < udp_fixed_payload_len; i++) {
+			if (sscanf(c + (i * 2), "%2x", &n) != 1) {
+				log_fatal("udp", "non-hex character: '%c'",
+					  c[i * 2]);
+			}
+			udp_fixed_payload[i] = (n & 0xff);
+		}
+		module_udp.make_packet = udp_make_latency_packet;
+		module_udp.process_packet = udp_process_latency_packet;
 	} else {
 		log_fatal("udp", udp_usage_error);
 	}
@@ -291,6 +305,69 @@ int udp_make_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 
 	// Output the total length of the packet
 	*buf_len = headers_len + udp_fixed_payload_len;
+	return EXIT_SUCCESS;
+}
+
+
+// add latency payload, similar to yarrp
+int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
+			      ipaddr_n_t dst_ip, uint8_t ttl,
+			      uint32_t *validation, int probe_num, void *arg)
+{
+	struct ether_header *eth_header = (struct ether_header *)buf;
+	struct ip *ip_header = (struct ip *)(&eth_header[1]);
+	struct udphdr *udp_header = (struct udphdr *)&ip_header[1];
+	size_t headers_len = sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr);
+
+	ip_header->ip_src.s_addr = src_ip;
+	ip_header->ip_dst.s_addr = dst_ip;
+	ip_header->ip_ttl = ttl;
+	udp_header->uh_sport =
+	    htons(get_src_port(num_ports, probe_num, validation));
+
+	char *payload = (char *)&udp_header[1];
+
+	/* calculate sending time */
+	struct timeval current;
+	gettimeofday(&current, NULL);
+	uint32_t diff = 
+		(int)((current.tv_sec - zsend.starting.tv_sec) * 10000 + (current.tv_usec - zsend.starting.tv_usec)/100);	// count in 0.1 millisecond
+	// uint32_t diff = 
+	//	(int)((current.tv_sec - zsend.starting.tv_sec) * 1000 + (current.tv_usec - zsend.starting.tv_usec)/1000);	// count in 1 millisecond
+
+	/* fill in uh_dport */
+	// udp_header->uh_dport = htons(65535 - (diff>>16));
+	// static uint16_t cyclic_ele = 1;
+	// cyclic_ele = (cyclic_ele * 11) % 16381;
+	// udp_header->uh_dport = htons(49152 + cyclic_ele);
+	// udp_header->uh_dport = htons(33434);
+	udp_header->uh_dport = htons(65535);
+
+	/* Update the IP and UDP headers to match the new payload length */
+	int payload_len = 2;
+	ip_header->ip_len = htons(sizeof(struct ip) + sizeof(struct udphdr) + payload_len);
+	ip_header->ip_off = ntohs(IP_DF);
+	udp_header->uh_ulen = htons(sizeof(struct udphdr) + payload_len);
+
+	ip_header->ip_sum = 0;
+	ip_header->ip_sum = zmap_ip_checksum((unsigned short *)ip_header);
+
+	/* compute UDP checksum */
+	memset(payload, 0, 2);
+	u_short udp_packet_len = sizeof(struct udphdr) + payload_len;
+	udp_header->uh_sum = 0;
+	udp_header->uh_sum= p_cksum(ip_header, (u_short *) udp_header, udp_packet_len);
+
+	uint16_t crafted_cksum = diff & 0xFFFF;
+	uint16_t crafted_data = compute_data(udp_header->uh_sum, crafted_cksum);
+
+	memcpy(payload, &crafted_data, 2);
+	if (crafted_cksum == 0x0000)
+		crafted_cksum = 0xFFFF;
+	udp_header->uh_sum= crafted_cksum;
+
+	/* Recalculate the total length of the packet */
+	*buf_len = headers_len + payload_len;
 	return EXIT_SUCCESS;
 }
 
@@ -402,6 +479,31 @@ void udp_process_packet(const u_char *packet, UNUSED uint32_t len,
 		fs_populate_icmp_from_iphdr(ip_hdr, len, fs);
 	} else {
 		fs_add_constchar(fs, "classification", "other");
+		fs_add_bool(fs, "success", 0);
+		fs_add_null(fs, "sport");
+		fs_add_null(fs, "dport");
+		fs_add_null(fs, "udp_pkt_size");
+		fs_add_null(fs, "data");
+		fs_add_null_icmp(fs);
+	}
+}
+
+void udp_process_latency_packet(const u_char *packet, UNUSED uint32_t len,
+			fieldset_t *fs,
+			UNUSED uint32_t *validation,
+			struct timespec ts)
+{
+	struct ip *ip_hdr = (struct ip *)&packet[sizeof(struct ether_header)];
+	if (ip_hdr->ip_p == IPPROTO_ICMP) {
+		fs_add_constchar(fs, "classification", "icmp");
+		fs_add_bool(fs, "success", 0);
+		fs_add_null(fs, "sport");
+		fs_add_null(fs, "dport");
+		fs_add_null(fs, "udp_pkt_size");
+		fs_add_null(fs, "data");
+		fs_populate_icmp_from_iphdr_latency(ip_hdr, len, fs, ts);
+	} else {
+		fs_add_constchar(fs, "classification", "latency_not_icmp");
 		fs_add_bool(fs, "success", 0);
 		fs_add_null(fs, "sport");
 		fs_add_null(fs, "dport");
