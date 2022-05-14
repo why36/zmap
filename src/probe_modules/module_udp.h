@@ -77,6 +77,8 @@ void udp_process_latency_packet(const u_char *packet, UNUSED uint32_t len,
 			UNUSED uint32_t *validation,
 			struct timespec ts);
 
+int udp_extract_index(const struct ip *ip_hdr, uint32_t len, uint32_t *validation);
+
 int udp_do_validate_packet(const struct ip *ip_hdr, uint32_t len,
 			   UNUSED uint32_t *src_ip,
 			   uint32_t *validation, int num_ports,

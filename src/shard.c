@@ -141,21 +141,17 @@ static inline uint32_t shard_get_next_elem(shard_t *shard)
 
 uint32_t shard_get_next_ip(shard_t *shard)
 {
-	static int round = 0; // should minus 1
+	// static int round = 0; // should minus 1
+	// static int round = zconf.packet_streams - 1;
 	if (shard->current == ZMAP_SHARD_DONE) {
 		return ZMAP_SHARD_DONE;
 	}
 	while (1) {
 		uint32_t candidate = shard_get_next_elem(shard);
 		if (candidate == shard->params.last) {
-			if (round == 0) {
-				shard->current = ZMAP_SHARD_DONE;
-				shard->iterations++;
-				return ZMAP_SHARD_DONE;
-			} else {
-				round --;
-				shard->current = shard->params.first;
-			}
+			shard->current = ZMAP_SHARD_DONE;
+			shard->iterations++;
+			return ZMAP_SHARD_DONE;
 		}
 		if (candidate - 1 < zsend.max_index) {
 			shard->state.hosts_allowlisted++;
@@ -164,4 +160,12 @@ uint32_t shard_get_next_ip(shard_t *shard)
 		}
 		shard->state.hosts_blocklisted++;
 	}
+}
+
+void shard_reset(shard_t *shard) {
+	shard->current = shard->params.first;
+
+	// If the beginning of a shard isn't pointing to a valid index in the
+	// blocklist, find the first element that is.
+	shard_roll_to_valid(shard);
 }

@@ -49,6 +49,7 @@
      .desc = "Source IP of ICMP_UNREACH messages"}, \
     {.name = "icmp_type", .type = "int", .desc = "icmp message type"}, \
     {.name = "icmp_code", .type = "int", .desc = "icmp message sub type code"}, \
+    {.name = "icmp_seq", .type = "int", .desc = "sequence index"}, \
     {.name = "icmp_timestamp", .type = "int", .desc = "icmp timestamp: relative sending time"}, \
     {.name = "icmp_elapsed", .type = "int", .desc = "icmp elapsed: relative receiving time"}, \
     {.name = "icmp_rtt", .type = "int", .desc = "icmp rtt: absolute rtt, in 0.1 millisecond (10^-4 second)"}, \
@@ -235,7 +236,7 @@ void fs_add_null_icmp(fieldset_t *fs);
 
 void fs_populate_icmp_from_iphdr(struct ip *ip, size_t len, fieldset_t *fs);
 
-void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *fs, struct timespec ts);
+void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *fs, struct timespec ts, int index);
 
 struct ipovly {
     u_char          ih_x1;

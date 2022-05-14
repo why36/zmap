@@ -48,5 +48,6 @@ void shard_init(shard_t *shard, uint16_t shard_idx, uint16_t num_shards,
 
 uint32_t shard_get_cur_ip(shard_t *shard);
 uint32_t shard_get_next_ip(shard_t *shard);
+void shard_reset(shard_t *shard);
 
 #endif /* ZMAP_SHARD_H */

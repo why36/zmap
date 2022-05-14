@@ -21,7 +21,7 @@
 #include "../../lib/includes.h"
 #include "../../lib/xalloc.h"
 #include "../../lib/lockfd.h"
-#include "logger.h"
+#include "../../lib/logger.h"
 #include "probe_modules.h"
 #include "packet.h"
 #include "aesrand.h"
@@ -324,6 +324,7 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	ip_header->ip_ttl = ttl;
 	udp_header->uh_sport =
 	    htons(get_src_port(num_ports, probe_num, validation));
+	log_debug("module_udp", "sequence number %d encoded; sport:%d; validation:%u", probe_num, (int)ntohs(udp_header->uh_sport), validation[1]);
 
 	char *payload = (char *)&udp_header[1];
 
@@ -488,9 +489,9 @@ void udp_process_packet(const u_char *packet, UNUSED uint32_t len,
 	}
 }
 
-void udp_process_latency_packet(const u_char *packet, UNUSED uint32_t len,
+void udp_process_latency_packet(const u_char *packet, uint32_t len,
 			fieldset_t *fs,
-			UNUSED uint32_t *validation,
+			uint32_t *validation,
 			struct timespec ts)
 {
 	struct ip *ip_hdr = (struct ip *)&packet[sizeof(struct ether_header)];
@@ -501,7 +502,7 @@ void udp_process_latency_packet(const u_char *packet, UNUSED uint32_t len,
 		fs_add_null(fs, "dport");
 		fs_add_null(fs, "udp_pkt_size");
 		fs_add_null(fs, "data");
-		fs_populate_icmp_from_iphdr_latency(ip_hdr, len, fs, ts);
+		fs_populate_icmp_from_iphdr_latency(ip_hdr, len, fs, ts, udp_extract_index(ip_hdr, len, validation));
 	} else {
 		fs_add_constchar(fs, "classification", "latency_not_icmp");
 		fs_add_bool(fs, "success", 0);
@@ -510,6 +511,30 @@ void udp_process_latency_packet(const u_char *packet, UNUSED uint32_t len,
 		fs_add_null(fs, "udp_pkt_size");
 		fs_add_null(fs, "data");
 		fs_add_null_icmp(fs);
+	}
+}
+
+int udp_extract_index(const struct ip *ip_hdr, uint32_t len, uint32_t *validation)
+{
+	if (ip_hdr->ip_p == IPPROTO_ICMP) {
+		struct ip *ip_inner;
+		size_t ip_inner_len;
+		if (icmp_helper_validate(ip_hdr, len, sizeof(struct udphdr),
+					 &ip_inner,
+					 &ip_inner_len) == PACKET_INVALID) {
+		}
+		struct udphdr *udp = get_udp_header(ip_inner, ip_inner_len);
+
+		uint16_t sport = ntohs(udp->uh_sport);
+
+		int32_t to_validate = sport - zconf.source_port_first;
+		int32_t min = validation[1] % num_ports;
+		int32_t index = (to_validate - min) % num_ports;
+		log_debug("module_udp", "sport:%d; to_validate:%d; min:%d; index:%d; validation:%u", (int)sport, to_validate, min, index, validation[1]);
+
+		return index;
+	} else {
+		return 0;
 	}
 }
 

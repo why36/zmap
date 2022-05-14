@@ -78,6 +78,7 @@ void handle_packet(uint32_t buflen, const u_char *bytes,
 		       bytes + zconf.data_link_size, buflen);
 		bytes = fake_eth_hdr;
 	}
+
 	zconf.probe_module->process_packet(bytes, buflen, fs, validation, ts);
 	fs_add_system_fields(fs, is_repeat, zsend.complete, ts);
 	int success_index = zconf.fsconf.success_index;

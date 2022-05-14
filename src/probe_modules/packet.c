@@ -199,6 +199,10 @@ void fs_add_null_icmp(fieldset_t *fs)
 	fs_add_null(fs, "icmp_responder");
 	fs_add_null(fs, "icmp_type");
 	fs_add_null(fs, "icmp_code");
+	fs_add_null(fs, "icmp_seq");
+	fs_add_null(fs, "icmp_timestamp");
+	fs_add_null(fs, "icmp_elapsed");
+	fs_add_null(fs, "icmp_rtt");
 	fs_add_null(fs, "icmp_unreach_str");
 }
 
@@ -207,6 +211,10 @@ void fs_add_failure_no_port(fieldset_t *fs)
 	fs_add_null(fs, "icmp_responder");
 	fs_add_null(fs, "icmp_type");
 	fs_add_null(fs, "icmp_code");
+	fs_add_null(fs, "icmp_seq");
+	fs_add_null(fs, "icmp_timestamp");
+	fs_add_null(fs, "icmp_elapsed");
+	fs_add_null(fs, "icmp_rtt");
 	fs_add_null(fs, "icmp_unreach_str");
 }
 
@@ -233,7 +241,7 @@ void fs_populate_icmp_from_iphdr(struct ip *ip, size_t len, fieldset_t *fs)
 	}
 }
 
-void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *fs, struct timespec ts)
+void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *fs, struct timespec ts, int index)
 {
 	assert(ip && "no ip header provide to fs_populate_icmp_from_iphdr");
 	assert(fs && "no fieldset provided to fs_populate_icmp_from_iphdr");
@@ -247,8 +255,10 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 	// if (((icmp->icmp_type == ICMP_TIMXCEED) && (icmp->icmp_code == ICMP_TIMXCEED_INTRANS)) || (icmp->icmp_type == ICMP_UNREACH)) {
 	if (icmp->icmp_type == ICMP_UNREACH) {
 		if (ip_inner->ip_p == IPPROTO_UDP) {
-
 			struct udphdr *udp_header = (struct udphdr *) ((char *)ip_inner + 4 * ip_inner->ip_hl);
+
+			fs_add_uint64(fs, "icmp_seq", (uint64_t)index);
+
 			int timestamp = udp_header->uh_sum;
 			int elapsed = 
 				(int)((ts.tv_sec - zsend.starting.tv_sec) * 10000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/100);		// accuracy: 0.1 millisecond
@@ -273,8 +283,15 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 			} else {
 				fs_add_constchar(fs, "icmp_unreach_str", "unknown");
 			}
+		} else {
+			fs_add_uint64(fs, "icmp_seq", 0);
+			fs_add_uint64(fs, "icmp_timestamp", 0);
+			fs_add_uint64(fs, "icmp_elapsed", 0);
+			fs_add_uint64(fs, "icmp_rtt", 0);
+			fs_add_constchar(fs, "icmp_unreach_str", "unknown");
 		}
 	} else {
+		fs_add_uint64(fs, "icmp_seq", 0);
 		fs_add_uint64(fs, "icmp_timestamp", 0);
 		fs_add_uint64(fs, "icmp_elapsed", 0);
 		fs_add_uint64(fs, "icmp_rtt", 0);
