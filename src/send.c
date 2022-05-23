@@ -255,7 +255,7 @@ int send_run(sock_t st, shard_t *s)
 	struct timespec ts, rem;
 	double send_rate =
 	    (double)zconf.rate /
-	    ((double)zconf.senders * zconf.batch * zconf.packet_streams);
+	    ((double)zconf.senders * zconf.batch);
 	const double slow_rate = 50; // packets per seconds per thread
 	// at which it uses the slow methods
 	long nsec_per_sec = 1000 * 1000 * 1000;

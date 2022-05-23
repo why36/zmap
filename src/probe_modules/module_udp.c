@@ -324,7 +324,7 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	ip_header->ip_ttl = ttl;
 	udp_header->uh_sport =
 	    htons(get_src_port(num_ports, probe_num, validation));
-	log_debug("module_udp", "sequence number %d encoded; sport:%d; validation:%u", probe_num, (int)ntohs(udp_header->uh_sport), validation[1]);
+	log_debug("module_udp", "ENCODED num_ports: %d; encoded: %d; validation: %u; sport:%u;", num_ports, probe_num, validation[1], ntohs(udp_header->uh_sport));
 
 	char *payload = (char *)&udp_header[1];
 
@@ -342,7 +342,10 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	// cyclic_ele = (cyclic_ele * 11) % 16381;
 	// udp_header->uh_dport = htons(49152 + cyclic_ele);
 	// udp_header->uh_dport = htons(33434);
-	udp_header->uh_dport = htons(65535);
+	// udp_header->uh_dport = htons(65535);
+	static int addition = 0;
+	udp_header->uh_dport = htons(33434 + addition);
+	addition += 1;
 
 	/* Update the IP and UDP headers to match the new payload length */
 	int payload_len = 2;
@@ -527,10 +530,17 @@ int udp_extract_index(const struct ip *ip_hdr, uint32_t len, uint32_t *validatio
 
 		uint16_t sport = ntohs(udp->uh_sport);
 
+		/*
 		int32_t to_validate = sport - zconf.source_port_first;
 		int32_t min = validation[1] % num_ports;
 		int32_t index = (to_validate - min) % num_ports;
-		log_debug("module_udp", "sport:%d; to_validate:%d; min:%d; index:%d; validation:%u", (int)sport, to_validate, min, index, validation[1]);
+		*/
+		int32_t index = sport - zconf.source_port_first - validation[1];
+		while (index < 0) {
+			index += num_ports;
+		}
+
+		log_debug("module_udp", "DECODED num_ports: %d; decoded: %d; validation: %u; sport:%u;", num_ports, index, validation[1], sport);
 
 		return index;
 	} else {
@@ -586,9 +596,11 @@ int udp_do_validate_packet(const struct ip *ip_hdr, uint32_t len,
 		// responding on a different port
 		uint16_t dport = ntohs(udp->uh_dport);
 		uint16_t sport = ntohs(udp->uh_sport);
+		/*
 		if (dport != zconf.target_port) {
 			return PACKET_INVALID;
 		}
+		*/
 		if (!check_dst_port(sport, num_ports, validation)) {
 			return PACKET_INVALID;
 		}
