@@ -343,9 +343,9 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	// udp_header->uh_dport = htons(49152 + cyclic_ele);
 	// udp_header->uh_dport = htons(33434);
 	// udp_header->uh_dport = htons(65535);
-	static int addition = 0;
-	udp_header->uh_dport = htons(33434 + addition);
-	addition += 1;
+	// static int addition = 0;
+	// udp_header->uh_dport = htons(33434 + addition);
+	// addition += 1;
 
 	/* Update the IP and UDP headers to match the new payload length */
 	int payload_len = 2;
@@ -530,13 +530,9 @@ int udp_extract_index(const struct ip *ip_hdr, uint32_t len, uint32_t *validatio
 
 		uint16_t sport = ntohs(udp->uh_sport);
 
-		/*
-		int32_t to_validate = sport - zconf.source_port_first;
-		int32_t min = validation[1] % num_ports;
-		int32_t index = (to_validate - min) % num_ports;
-		*/
-		int32_t index = sport - zconf.source_port_first - validation[1];
+		int32_t index = sport - zconf.source_port_first - validation[1] % num_ports;
 		while (index < 0) {
+			log_debug("module_udp", "INDEX adding: %d + %d = %d", index, num_ports, index + num_ports);
 			index += num_ports;
 		}
 
@@ -596,11 +592,9 @@ int udp_do_validate_packet(const struct ip *ip_hdr, uint32_t len,
 		// responding on a different port
 		uint16_t dport = ntohs(udp->uh_dport);
 		uint16_t sport = ntohs(udp->uh_sport);
-		/*
 		if (dport != zconf.target_port) {
 			return PACKET_INVALID;
 		}
-		*/
 		if (!check_dst_port(sport, num_ports, validation)) {
 			return PACKET_INVALID;
 		}

@@ -381,6 +381,8 @@ int send_run(sock_t st, shard_t *s)
 				} else {
 					current_round = current_round + 1;
 					shard_reset(s);
+					current_ip = shard_get_cur_ip(s);
+
 				}
 			}
 
