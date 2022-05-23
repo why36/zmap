@@ -199,6 +199,9 @@ void fs_add_null_icmp(fieldset_t *fs)
 	fs_add_null(fs, "icmp_responder");
 	fs_add_null(fs, "icmp_type");
 	fs_add_null(fs, "icmp_code");
+	fs_add_uint64(fs, "icmp_timestamp", 0);
+	fs_add_uint64(fs, "icmp_elapsed", 0);
+	fs_add_uint64(fs, "icmp_rtt", 0);
 	fs_add_null(fs, "icmp_unreach_str");
 }
 
@@ -207,6 +210,9 @@ void fs_add_failure_no_port(fieldset_t *fs)
 	fs_add_null(fs, "icmp_responder");
 	fs_add_null(fs, "icmp_type");
 	fs_add_null(fs, "icmp_code");
+	fs_add_uint64(fs, "icmp_timestamp", 0);
+	fs_add_uint64(fs, "icmp_elapsed", 0);
+	fs_add_uint64(fs, "icmp_rtt", 0);
 	fs_add_null(fs, "icmp_unreach_str");
 }
 
@@ -273,6 +279,11 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 			} else {
 				fs_add_constchar(fs, "icmp_unreach_str", "unknown");
 			}
+		} else {
+			fs_add_uint64(fs, "icmp_timestamp", 0);
+			fs_add_uint64(fs, "icmp_elapsed", 0);
+			fs_add_uint64(fs, "icmp_rtt", 0);
+			fs_add_constchar(fs, "icmp_unreach_str", "unknown");
 		}
 	} else {
 		fs_add_uint64(fs, "icmp_timestamp", 0);

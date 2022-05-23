@@ -141,13 +141,14 @@ static inline uint32_t shard_get_next_elem(shard_t *shard)
 
 uint32_t shard_get_next_ip(shard_t *shard)
 {
-	static int round = 0; // should minus 1
+	// static int round = 149; // should minus 1
 	if (shard->current == ZMAP_SHARD_DONE) {
 		return ZMAP_SHARD_DONE;
 	}
 	while (1) {
 		uint32_t candidate = shard_get_next_elem(shard);
 		if (candidate == shard->params.last) {
+			/*
 			if (round == 0) {
 				shard->current = ZMAP_SHARD_DONE;
 				shard->iterations++;
@@ -156,6 +157,8 @@ uint32_t shard_get_next_ip(shard_t *shard)
 				round --;
 				shard->current = shard->params.first;
 			}
+			*/
+			shard->current = shard->params.first;
 		}
 		if (candidate - 1 < zsend.max_index) {
 			shard->state.hosts_allowlisted++;
