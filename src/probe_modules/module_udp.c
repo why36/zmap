@@ -324,7 +324,7 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	ip_header->ip_ttl = ttl;
 	udp_header->uh_sport =
 	    htons(get_src_port(num_ports, probe_num, validation));
-	log_debug("module_udp", "ENCODED num_ports: %d; encoded: %d; validation: %u; sport:%u;", num_ports, probe_num, validation[1], ntohs(udp_header->uh_sport));
+	// log_debug("module_udp", "ENCODED num_ports: %d; encoded: %d; validation: %u; sport:%u;", num_ports, probe_num, validation[1], ntohs(udp_header->uh_sport));
 
 	char *payload = (char *)&udp_header[1];
 
@@ -536,7 +536,7 @@ int udp_extract_index(const struct ip *ip_hdr, uint32_t len, uint32_t *validatio
 			index += num_ports;
 		}
 
-		log_debug("module_udp", "DECODED num_ports: %d; decoded: %d; validation: %u; sport:%u;", num_ports, index, validation[1], sport);
+		// log_debug("module_udp", "DECODED num_ports: %d; decoded: %d; validation: %u; sport:%u;", num_ports, index, validation[1], sport);
 
 		return index;
 	} else {
@@ -595,9 +595,11 @@ int udp_do_validate_packet(const struct ip *ip_hdr, uint32_t len,
 		if (dport != zconf.target_port) {
 			return PACKET_INVALID;
 		}
+		/*
 		if (!check_dst_port(sport, num_ports, validation)) {
 			return PACKET_INVALID;
 		}
+		*/
 	} else {
 		return PACKET_INVALID;
 	}

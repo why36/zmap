@@ -258,9 +258,9 @@ int send_run(sock_t st, shard_t *s)
 	    ((double)zconf.senders * zconf.batch);
 
 	const double low_rate = zconf.rate;			// represent the low probing rate
-	const double high_rate = zconf.rate * 18;		// represent the high probing rate
-	const int round_lowRate = 3;				// represent the round count before switching to high rate
-	const int round_highRate = 18;				// represent the round count before switching back to low rate
+	const double high_rate = zconf.rate * 12;		// represent the high probing rate
+	const int round_lowRate = 10;				// represent the round count before switching to high rate
+	const int round_highRate = 30;				// represent the round count before switching back to low rate
 	double zconf_rate_local = low_rate;		// represent the current probing rate
 
 	const double slow_rate = 50; // packets per seconds per thread
@@ -327,6 +327,7 @@ int send_run(sock_t st, shard_t *s)
 					last_time = now();
 					count = 0;
 					last_count = count;
+					log_debug("send.c", "Switch2High: round: %d; current high rate: %f; delay: %u; interval: %d", current_round, zconf_rate_local, delay, interval);
 				} else if ((current_round - 1) % (round_lowRate + round_highRate) == 0) {
 					zconf_rate_local = low_rate;
 					delay *= (high_rate / low_rate);
@@ -334,6 +335,7 @@ int send_run(sock_t st, shard_t *s)
 					last_time = now();
 					count = 0;
 					last_count = count;
+					log_debug("send.c", "Switch2Low: round: %d; current low rate: %f; delay: %u; interval: %d", current_round, zconf_rate_local, delay, interval);
 				}
 			}
 		}
@@ -414,7 +416,7 @@ int send_run(sock_t st, shard_t *s)
 		size_t length = 0;
 		zconf.probe_module->make_packet(
 			buf, &length, src_ip, current_ip, ttl, validation,
-			current_round, probe_data);
+			(int)(zconf_rate_local / low_rate), probe_data);
 		if (length > MAX_PACKET_SIZE) {
 			log_fatal(
 				"send",
