@@ -532,7 +532,7 @@ int udp_extract_index(const struct ip *ip_hdr, uint32_t len, uint32_t *validatio
 
 		int32_t index = sport - zconf.source_port_first - validation[1] % num_ports;
 		while (index < 0) {
-			log_debug("module_udp", "INDEX adding: %d + %d = %d", index, num_ports, index + num_ports);
+			// log_debug("module_udp", "INDEX adding: %d + %d = %d", index, num_ports, index + num_ports);
 			index += num_ports;
 		}
 

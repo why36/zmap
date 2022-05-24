@@ -258,9 +258,9 @@ int send_run(sock_t st, shard_t *s)
 	    ((double)zconf.senders * zconf.batch);
 
 	const double low_rate = zconf.rate;			// represent the low probing rate
-	const double high_rate = zconf.rate * 12;		// represent the high probing rate
-	const int round_lowRate = 10;				// represent the round count before switching to high rate
-	const int round_highRate = 30;				// represent the round count before switching back to low rate
+	const double high_rate = zconf.rate * 12;		// represent the high probing rate 12
+	const int round_lowRate = 5;				// represent the round count before switching to high rate 10
+	const int round_highRate = 30;				// represent the round count before switching back to low rate 30
 	double zconf_rate_local = low_rate;		// represent the current probing rate
 
 	const double slow_rate = 50; // packets per seconds per thread
@@ -286,6 +286,7 @@ int send_run(sock_t st, shard_t *s)
 			last_time = now();
 		}
 	}
+
 	// Get the initial IP to scan.
 	uint32_t current_ip = shard_get_cur_ip(s);
 
@@ -322,15 +323,21 @@ int send_run(sock_t st, shard_t *s)
 				current_ip = shard_get_cur_ip(s);
 				if ((current_round - 1) % (round_lowRate + round_highRate) == round_lowRate) {
 					zconf_rate_local = high_rate;
-					delay *= (low_rate / high_rate);
+					delay = (uint32_t)(delay / (high_rate / low_rate));
 					interval = zconf_rate_local / 20.0;
 					last_time = now();
 					count = 0;
 					last_count = count;
 					log_debug("send.c", "Switch2High: round: %d; current high rate: %f; delay: %u; interval: %d", current_round, zconf_rate_local, delay, interval);
 				} else if ((current_round - 1) % (round_lowRate + round_highRate) == 0) {
+					ts.tv_sec = 10;
+					ts.tv_nsec = 0;
+					while (nanosleep(&ts, &rem) == -1) {
+					}
+					log_debug("send.c", "Sleep for 10 seconds.");
+
 					zconf_rate_local = low_rate;
-					delay *= (high_rate / low_rate);
+					delay = (uint32_t)(delay * (high_rate / low_rate));
 					interval = zconf_rate_local / 20.0;
 					last_time = now();
 					count = 0;
@@ -377,6 +384,16 @@ int send_run(sock_t st, shard_t *s)
 					last_time = t;
 				}
 			}
+		} else if (delay == 0) {
+			log_error("send.c", "delay equals zero, revaulated.");
+			last_time = now();
+			delay = 10000;
+			for (vi = delay; vi--;)
+				;
+			delay *= 1 / (now() - last_time) / zconf_rate_local;
+			interval = zconf_rate_local / 20;
+			last_time = now();
+			last_count = count;
 		}
 
 		// Check if the program has otherwise completed and break out of the send loop.
@@ -416,7 +433,7 @@ int send_run(sock_t st, shard_t *s)
 		size_t length = 0;
 		zconf.probe_module->make_packet(
 			buf, &length, src_ip, current_ip, ttl, validation,
-			(int)(zconf_rate_local / low_rate), probe_data);
+			((current_round - 1) % (round_lowRate + round_highRate) + 1), probe_data);
 		if (length > MAX_PACKET_SIZE) {
 			log_fatal(
 				"send",
