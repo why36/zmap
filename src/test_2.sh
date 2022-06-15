@@ -1,6 +1,6 @@
-rateArray=("16077")
+rateArray=("20000")
 timeArray=("300")
-whichs=("13")
+whichs=("12")
 for i in 0
 do
 	rate=${rateArray[$i]}
@@ -18,7 +18,7 @@ do
 	error_file="$path/error_$which"
 	metadata_file="$path/metadata_$which"
 
-	sudo ./zmap 	-w targets_0611/ips_1 -v 3 -M icmp_echo_time -r $rate -t $time -P $per_ip --batch=$batch -c $coolTime --sender-threads=$sender_threads	 -l $log_file -u $status_file --output-file=$output_file --output-module=csv --output-fields="saddr,type,code,sent_timestamp_ts,sent_timestamp_us,timestamp_ts,timestamp_us" --metadata-file=$metadata_file > $error_file
+	sudo ./zmap 	-w targets_0611/ips_3 -v 3 -M icmp_echo_time -r $rate -t $time -P $per_ip --batch=$batch -c $coolTime --sender-threads=$sender_threads	 -l $log_file -u $status_file --output-file=$output_file --output-module=csv --output-fields="saddr,type,code,sent_timestamp_ts,sent_timestamp_us,timestamp_ts,timestamp_us" --metadata-file=$metadata_file > $error_file
 done
 
 
