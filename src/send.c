@@ -262,6 +262,7 @@ int send_run(sock_t st, shard_t *s)
 	const int round_lowRate = 5;				// represent the round count before switching to high rate 10
 	const int round_highRate = 30;				// represent the round count before switching back to low rate 30
 	double zconf_rate_local = low_rate;		// represent the current probing rate
+	const int rest_time = 5;
 
 	const double slow_rate = 50; // packets per seconds per thread
 	// at which it uses the slow methods
@@ -330,7 +331,7 @@ int send_run(sock_t st, shard_t *s)
 					last_count = count;
 					log_debug("send.c", "Switch2High: round: %d; current high rate: %f; delay: %u; interval: %d", current_round, zconf_rate_local, delay, interval);
 				} else if ((current_round - 1) % (round_lowRate + round_highRate) == 0) {
-					ts.tv_sec = 10;
+					ts.tv_sec = rest_time;
 					ts.tv_nsec = 0;
 					while (nanosleep(&ts, &rem) == -1) {
 					}
