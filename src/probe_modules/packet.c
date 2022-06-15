@@ -100,7 +100,7 @@ void make_icmp_header(struct icmp *buf)
 	memset(buf, 0, sizeof(struct icmp));
 	buf->icmp_type = ICMP_ECHO;
 	buf->icmp_code = 0;
-	buf->icmp_seq = 0;
+	// buf->icmp_seq = 0;
 }
 
 void make_tcp_header(struct tcphdr *tcp_header, port_h_t dest_port,
@@ -199,7 +199,8 @@ void fs_add_null_icmp(fieldset_t *fs)
 	fs_add_null(fs, "icmp_responder");
 	fs_add_null(fs, "icmp_type");
 	fs_add_null(fs, "icmp_code");
-	fs_add_null(fs, "icmp_seq");
+	fs_add_null(fs, "icmp_round");
+	fs_add_null(fs, "icmp_path");
 	fs_add_null(fs, "icmp_timestamp");
 	fs_add_null(fs, "icmp_elapsed");
 	fs_add_null(fs, "icmp_rtt");
@@ -211,7 +212,8 @@ void fs_add_failure_no_port(fieldset_t *fs)
 	fs_add_null(fs, "icmp_responder");
 	fs_add_null(fs, "icmp_type");
 	fs_add_null(fs, "icmp_code");
-	fs_add_null(fs, "icmp_seq");
+	fs_add_null(fs, "icmp_round");
+	fs_add_null(fs, "icmp_path");
 	fs_add_null(fs, "icmp_timestamp");
 	fs_add_null(fs, "icmp_elapsed");
 	fs_add_null(fs, "icmp_rtt");
@@ -241,7 +243,7 @@ void fs_populate_icmp_from_iphdr(struct ip *ip, size_t len, fieldset_t *fs)
 	}
 }
 
-void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *fs, struct timespec ts, int index)
+void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *fs, struct timespec ts, int path_info)
 {
 	assert(ip && "no ip header provide to fs_populate_icmp_from_iphdr");
 	assert(fs && "no fieldset provided to fs_populate_icmp_from_iphdr");
@@ -257,13 +259,17 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 		if (ip_inner->ip_p == IPPROTO_UDP) {
 			struct udphdr *udp_header = (struct udphdr *) ((char *)ip_inner + 4 * ip_inner->ip_hl);
 
-			fs_add_uint64(fs, "icmp_seq", (uint64_t)index);
 
-			int timestamp = udp_header->uh_sum;
+			int cksum = udp_header->uh_sum;
+			int round_info = cksum >> 12;
+			int timestamp = cksum & 0xFFF;
+			fs_add_uint64(fs, "icmp_round", (uint64_t)round_info);
+			fs_add_uint64(fs, "icmp_path", (uint64_t)path_info);
+			log_debug("recvLatencyPkt", "ip %u; path_info %d; recv diff %d; round_info %d; cksum %d", ip_inner->ip_dst.s_addr, path_info, timestamp, round_info, round_info, cksum);
+			// int elapsed = 
+			//	(int)((ts.tv_sec - zsend.starting.tv_sec) * 10000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/100);		// accuracy: 0.1 millisecond
 			int elapsed = 
-				(int)((ts.tv_sec - zsend.starting.tv_sec) * 10000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/100);		// accuracy: 0.1 millisecond
-			//int elapsed = 
-			//	(int)((ts.tv_sec - zsend.starting.tv_sec) * 1000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/1000);		// accuracy: 1 millisecond
+				(int)((ts.tv_sec - zsend.starting.tv_sec) * 1000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/1000);		// accuracy: 1 millisecond
 			int rtt = 0;
 			if (elapsed >= timestamp) {
 				rtt = (elapsed - timestamp) % 65536;
@@ -284,14 +290,16 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 				fs_add_constchar(fs, "icmp_unreach_str", "unknown");
 			}
 		} else {
-			fs_add_uint64(fs, "icmp_seq", 0);
+			fs_add_uint64(fs, "icmp_round", 0);
+			fs_add_uint64(fs, "icmp_path", 0);
 			fs_add_uint64(fs, "icmp_timestamp", 0);
 			fs_add_uint64(fs, "icmp_elapsed", 0);
 			fs_add_uint64(fs, "icmp_rtt", 0);
 			fs_add_constchar(fs, "icmp_unreach_str", "unknown");
 		}
 	} else {
-		fs_add_uint64(fs, "icmp_seq", 0);
+		fs_add_uint64(fs, "icmp_round", 0);
+		fs_add_uint64(fs, "icmp_path", 0);
 		fs_add_uint64(fs, "icmp_timestamp", 0);
 		fs_add_uint64(fs, "icmp_elapsed", 0);
 		fs_add_uint64(fs, "icmp_rtt", 0);

@@ -322,19 +322,22 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	ip_header->ip_src.s_addr = src_ip;
 	ip_header->ip_dst.s_addr = dst_ip;
 	ip_header->ip_ttl = ttl;
+
+	int path_info = probe_num >> 4;
+	uint32_t round_info = probe_num & 0xF;
 	udp_header->uh_sport =
-	    htons(get_src_port(num_ports, probe_num, validation));
-	// log_debug("module_udp", "ENCODED num_ports: %d; encoded: %d; validation: %u; sport:%u;", num_ports, probe_num, validation[1], ntohs(udp_header->uh_sport));
+	    htons(get_src_port(num_ports, path_info, validation));
+	log_debug("makeLatencyPkt", "ip %u; ENCODED num_ports: %d; encoded: %d; validation: %u; sport:%u;", dst_ip, num_ports, path_info, validation[1], ntohs(udp_header->uh_sport));
 
 	char *payload = (char *)&udp_header[1];
 
 	/* calculate sending time */
 	struct timeval current;
 	gettimeofday(&current, NULL);
-	uint32_t diff = 
-		(int)((current.tv_sec - zsend.starting.tv_sec) * 10000 + (current.tv_usec - zsend.starting.tv_usec)/100);	// count in 0.1 millisecond
 	// uint32_t diff = 
-	//	(int)((current.tv_sec - zsend.starting.tv_sec) * 1000 + (current.tv_usec - zsend.starting.tv_usec)/1000);	// count in 1 millisecond
+	//	(int)((current.tv_sec - zsend.starting.tv_sec) * 10000 + (current.tv_usec - zsend.starting.tv_usec)/100);	// count in 0.1 millisecond
+	uint32_t diff = 
+		(int)((current.tv_sec - zsend.starting.tv_sec) * 1000 + (current.tv_usec - zsend.starting.tv_usec)/1000);	// count in 1 millisecond
 
 	/* fill in uh_dport */
 	// udp_header->uh_dport = htons(65535 - (diff>>16));
@@ -362,7 +365,8 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	udp_header->uh_sum = 0;
 	udp_header->uh_sum= p_cksum(ip_header, (u_short *) udp_header, udp_packet_len);
 
-	uint16_t crafted_cksum = diff & 0xFFFF;
+	uint16_t crafted_cksum = (diff & 0xFFF) | (round_info << 12);
+	log_debug("makeLatencyPkt", "ip %u; original diff %u; crafted diff %u; round_info %u; cksum %u;", dst_ip, diff, (diff & 0xFFF), round_info, crafted_cksum);
 	uint16_t crafted_data = compute_data(udp_header->uh_sum, crafted_cksum);
 
 	memcpy(payload, &crafted_data, 2);

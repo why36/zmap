@@ -49,7 +49,8 @@
      .desc = "Source IP of ICMP_UNREACH messages"}, \
     {.name = "icmp_type", .type = "int", .desc = "icmp message type"}, \
     {.name = "icmp_code", .type = "int", .desc = "icmp message sub type code"}, \
-    {.name = "icmp_seq", .type = "int", .desc = "sequence index"}, \
+    {.name = "icmp_round", .type = "int", .desc = "round mark within a cycle"}, \
+    {.name = "icmp_path", .type = "int", .desc = "path mark (load balancing)"}, \
     {.name = "icmp_timestamp", .type = "int", .desc = "icmp timestamp: relative sending time"}, \
     {.name = "icmp_elapsed", .type = "int", .desc = "icmp elapsed: relative receiving time"}, \
     {.name = "icmp_rtt", .type = "int", .desc = "icmp rtt: absolute rtt, in 0.1 millisecond (10^-4 second)"}, \
