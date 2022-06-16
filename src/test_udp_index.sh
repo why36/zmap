@@ -1,6 +1,6 @@
 rate=200
 per_ip=80		#200 in the formal test
-which="1"
+which="2"
 target="targets_0616/ips_1"
 batch=1
 coolTime=15

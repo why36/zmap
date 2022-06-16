@@ -266,7 +266,7 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 			int timestamp = cksum & 0xFFF;
 			fs_add_uint64(fs, "icmp_round", (uint64_t)round_info);
 			fs_add_uint64(fs, "icmp_path", (uint64_t)path_info);
-			log_debug("recvLatencyPkt", "ip %u; path_info %d; recv diff %d; round_info %d; cksum %d", ip_inner->ip_dst.s_addr, path_info, timestamp, round_info, round_info, cksum);
+			log_debug("**recv**", "ip %u; path %d; round %d; diff %d; cksum %d", ip_inner->ip_dst.s_addr, path_info, round_info, timestamp, cksum);
 			// int elapsed = 
 			//	(int)((ts.tv_sec - zsend.starting.tv_sec) * 10000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/100);		// accuracy: 0.1 millisecond
 			int elapsed = 

@@ -433,7 +433,7 @@ int send_run(sock_t st, shard_t *s)
 		validate_gen(src_ip, current_ip, (uint8_t *)validation);
 		uint8_t ttl = zconf.probe_ttl;
 		size_t length = 0;
-		int path_info = 0;
+		int path_info = (current_round - 1) / (round_lowRate + round_highRate);		// TOCHANGE
 		int round_info = ((current_round - 1) % (round_lowRate + round_highRate)) / compress_rate;
 		zconf.probe_module->make_packet(
 			buf, &length, src_ip, current_ip, ttl, validation,
