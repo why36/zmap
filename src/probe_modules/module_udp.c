@@ -367,7 +367,7 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 
 	uint16_t crafted_cksum = (diff & 0xFFF) | (round_info << 12);
 	// log_debug("makeLatencyPkt", "ip %u; original diff %u; crafted diff %u; round_info %u; cksum %u;", dst_ip, diff, (diff & 0xFFF), round_info, crafted_cksum);
-	log_debug("__make__", "ip %u; path %d; round %d; diff %d; cksum %d", dst_ip, path_info, round_info, diff, crafted_cksum);
+	log_debug("__make__", "ip %u; path %d; round %d; diff %d; cksum %d", dst_ip, path_info, round_info, (diff & 0xFFF), crafted_cksum);
 	uint16_t crafted_data = compute_data(udp_header->uh_sum, crafted_cksum);
 
 	memcpy(payload, &crafted_data, 2);

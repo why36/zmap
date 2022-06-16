@@ -258,11 +258,11 @@ int send_run(sock_t st, shard_t *s)
 	    ((double)zconf.senders * zconf.batch);
 
 	const double low_rate = zconf.rate;			// represent the low probing rate
-	const double high_rate = zconf.rate * 5;		// represent the high probing rate 12
+	const double high_rate = zconf.rate * 1;		// represent the high probing rate 12
 	const int round_lowRate = 6;				// represent the round count before switching to high rate 10
-	const int round_highRate = 10;				// represent the round count before switching back to low rate 30
+	const int round_highRate = 2;				// represent the round count before switching back to low rate 30
 	double zconf_rate_local = low_rate;		// represent the current probing rate
-	const int compress_rate = 3;
+	const int compress_rate = 1;
 	const int rest_time = 5;
 
 	const double slow_rate = 50; // packets per seconds per thread
@@ -433,7 +433,8 @@ int send_run(sock_t st, shard_t *s)
 		validate_gen(src_ip, current_ip, (uint8_t *)validation);
 		uint8_t ttl = zconf.probe_ttl;
 		size_t length = 0;
-		int path_info = (current_round - 1) / (round_lowRate + round_highRate);		// TOCHANGE
+		// int path_info = (current_round - 1) / (round_lowRate + round_highRate);		// TOCHANGE
+		int path_info = 0;
 		int round_info = ((current_round - 1) % (round_lowRate + round_highRate)) / compress_rate;
 		zconf.probe_module->make_packet(
 			buf, &length, src_ip, current_ip, ttl, validation,
