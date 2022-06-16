@@ -13,6 +13,7 @@
 
 #include "../../lib/includes.h"
 #include "../../lib/xalloc.h"
+#include "../../lib/logger.h"
 #include "packet.h"
 
 #include "../state.h"

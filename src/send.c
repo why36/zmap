@@ -258,9 +258,9 @@ int send_run(sock_t st, shard_t *s)
 	    ((double)zconf.senders * zconf.batch);
 
 	const double low_rate = zconf.rate;			// represent the low probing rate
-	const double high_rate = zconf.rate * 12;		// represent the high probing rate 12
-	const int round_lowRate = 5;				// represent the round count before switching to high rate 10
-	const int round_highRate = 30;				// represent the round count before switching back to low rate 30
+	const double high_rate = zconf.rate * 5;		// represent the high probing rate 12
+	const int round_lowRate = 6;				// represent the round count before switching to high rate 10
+	const int round_highRate = 10;				// represent the round count before switching back to low rate 30
 	double zconf_rate_local = low_rate;		// represent the current probing rate
 	const int compress_rate = 3;
 	const int rest_time = 5;
