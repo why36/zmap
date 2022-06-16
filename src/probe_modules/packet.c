@@ -273,7 +273,7 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 				(int)((ts.tv_sec - zsend.starting.tv_sec) * 1000 + (ts.tv_nsec / 1000 - zsend.starting.tv_usec)/1000);		// accuracy: 1 millisecond
 			int rtt = 0;
 			if (elapsed >= timestamp) {
-				rtt = (elapsed - timestamp) % 65536;
+				rtt = (elapsed - timestamp) % 4096;
 			} else if (udp_header->uh_sum== 0xffff) {
 				timestamp -= 65536;
 				rtt = elapsed - timestamp;
