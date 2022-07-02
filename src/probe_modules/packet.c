@@ -262,3 +262,67 @@ const char *icmp_unreach_strings[] = {
     "host presdence violation",
 	"precedence cutoff"
 };
+
+unsigned short in_cksum(unsigned short *addr, int len) {
+    int nleft = len;
+    int sum = 0;
+    unsigned short *w = addr;
+    unsigned short answer = 0;
+
+    /*
+     * Our algorithm is simple, using a 32 bit accumulator (sum), we add
+     * sequential 16 bit words to it, and at the end, fold back all the carry
+     * bits from the top 16 bits into the lower 16 bits.
+     */
+    assert(addr);
+    while (nleft > 1) {
+        sum += *w++;
+        nleft -= 2;
+    }
+
+    /* 4mop up an odd byte, if necessary */
+    if (nleft == 1) {
+        *(unsigned char *)(&answer) = *(unsigned char *)w;
+        sum += answer;
+    }
+    /* 4add back carry outs from top 16 bits to low 16 bits */
+    sum = (sum >> 16) + (sum & 0xffff); /* add hi 16 to low 16 */
+    sum += (sum >> 16);         /* add carry */
+    answer = ~sum;              /* truncate to 16 bits */
+    return answer;
+}
+
+
+u_short p_cksum(struct ip *ip, u_short * data, int len) {
+    static struct ipovly ipo;
+    u_short sumh, sumd;
+    u_long sumt;
+
+    ipo.ih_pr = ip->ip_p;
+    ipo.ih_len = htons(len);
+    ipo.ih_src = ip->ip_src;
+    ipo.ih_dst = ip->ip_dst;
+
+    sumh = in_cksum((u_short *) & ipo, sizeof(ipo));    /* pseudo ip hdr cksum */
+    sumd = in_cksum((u_short *) data, len);     /* payload data cksum */
+    sumt = (sumh << 16) | (sumd);
+
+    return ~in_cksum((u_short *) & sumt, sizeof(sumt));
+}
+
+unsigned short compute_data(unsigned short start_cksum, unsigned short target_cksum) {
+    unsigned short answer = 0x0000;
+    /* per RFC, if computed checksum is 0, the value 0xFFFF is transmitted */
+    if (target_cksum == 0xFFFF)
+        target_cksum = 0x0000;
+    /* if the ones' complement of the target checksum is greater than
+     * the ones' complement of the starting checksum, use the overflow
+     * in the computation of IP/UDP checksum to keep result positive
+     */
+    if (~target_cksum > ~start_cksum){
+        answer = ~target_cksum - (~start_cksum);
+    }else{
+        answer = 0xFFFF - (~start_cksum) + (~target_cksum); 
+    }
+    return answer;
+}

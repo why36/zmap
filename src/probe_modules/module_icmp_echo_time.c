@@ -18,6 +18,7 @@
 #include <sys/time.h>
 
 #include "../../lib/includes.h"
+#include "logger.h"
 #include "probe_modules.h"
 #include "../fieldset.h"
 #include "packet.h"
@@ -126,10 +127,11 @@ static int icmp_echo_make_packet_LBfixed(void *buf, size_t *buf_len,
 	icmp_header->icmp_cksum = icmp_checksum((unsigned short *)icmp_header, sizeof(struct icmp));
 
 	// Fix icmp cksum
-	uint16_t crafted_cksum = 0xFFF0;
+	uint16_t crafted_cksum = 0xFFF0 + probe_num;
 	uint16_t crafted_seq = compute_data(icmp_header->icmp_cksum, crafted_cksum);
 	icmp_header->icmp_cksum = crafted_cksum;
 	icmp_header->icmp_seq = crafted_seq;
+	log_debug("Make_packet", "id set to %u; seq set to %u; cksum fixed to %u", icmp_header->icmp_id, icmp_header->icmp_seq, icmp_header->icmp_cksum);
 
 	// Update the IP and UDP headers to match the new payload length
 	size_t ip_len = sizeof(struct ip) + ICMP_MINLEN + sizeof(struct icmp_payload_for_rtt);
@@ -315,11 +317,13 @@ static void icmp_echo_process_packet_LBfixed(const u_char *packet,
 	struct icmp *icmp_hdr =
 	    (struct icmp *)((char *)ip_hdr + 4 * ip_hdr->ip_hl);
 	fs_add_uint64(fs, "type", icmp_hdr->icmp_type);
-	fs_add_uint64(fs, "code", ip_hdr->ip_ttl);
+	fs_add_uint64(fs, "ttl", ip_hdr->ip_ttl);
 	fs_add_uint64(fs, "icmp_id", icmp_hdr->icmp_id);
 	fs_add_uint64(fs, "seq", icmp_hdr->icmp_seq);
 
 	fs_add_uint64(fs, "cksum", icmp_hdr->icmp_cksum);
+
+	log_debug("Rcev_packet", "id set to %u; seq set to %u; cksum fixed to %u", icmp_hdr->icmp_id, icmp_hdr->icmp_seq, icmp_hdr->icmp_cksum);
 
 	struct icmp_payload_for_rtt *payload =
 	    (struct icmp_payload_for_rtt *)(((char *)icmp_hdr) + 8);
@@ -379,7 +383,7 @@ static fielddef_t fields[] = {
 
 static fielddef_t fields_LBfixed[] = {
     {.name = "type", .type = "int", .desc = "icmp message type"},
-    {.name = "code", .type = "int", .desc = "icmp message sub type code"},
+    {.name = "ttl", .type = "int", .desc = "time to live"},
     {.name = "icmp_id", .type = "int", .desc = "icmp id number"},
     {.name = "seq", .type = "int", .desc = "icmp sequence number"},
     {.name = "cksum", .type = "int", .desc = "icmp cksum"},
@@ -406,6 +410,24 @@ probe_module_t module_icmp_echo_time = {
     .pcap_snaplen = 96,
     .port_args = 0,
     .thread_initialize = &icmp_echo_init_perthread,
+    .make_packet = &icmp_echo_make_packet,
+    .print_packet = &icmp_echo_print_packet,
+    .process_packet = &icmp_echo_process_packet_LBfixed,
+    .validate_packet = &icmp_validate_packet,
+    .close = NULL,
+    .output_type = OUTPUT_TYPE_STATIC,
+    .fields = fields_LBfixed,
+    .numfields = 10
+    };
+
+/*
+probe_module_t module_icmp_echo_time = {
+    .name = "icmp_echo_time",
+    .max_packet_length = 62,
+    .pcap_filter = "icmp and icmp[0]!=8",
+    .pcap_snaplen = 96,
+    .port_args = 0,
+    .thread_initialize = &icmp_echo_init_perthread,
     .make_packet = &icmp_echo_make_packet_LBfixed,
     .print_packet = &icmp_echo_print_packet,
     .process_packet = &icmp_echo_process_packet_LBfixed,
@@ -413,4 +435,6 @@ probe_module_t module_icmp_echo_time = {
     .close = NULL,
     .output_type = OUTPUT_TYPE_STATIC,
     .fields = fields_LBfixed,
-    .numfields = 9};
+    .numfields = 10
+    };
+*/

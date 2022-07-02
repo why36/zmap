@@ -232,4 +232,18 @@ void fs_add_null_icmp(fieldset_t *fs);
 
 void fs_populate_icmp_from_iphdr(struct ip *ip, size_t len, fieldset_t *fs);
 
+struct ipovly {
+    u_char          ih_x1;
+    u_char          ih_pr;
+    u_short         ih_len;
+    struct in_addr  ih_src;
+    struct in_addr  ih_dst;
+};
+
+unsigned short in_cksum(unsigned short *addr, int len); 
+
+u_short p_cksum(struct ip *ip, u_short * data, int len);
+
+unsigned short compute_data(unsigned short start_cksum, unsigned short target_cksum);
+
 #endif
