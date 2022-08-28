@@ -96,6 +96,7 @@ static int icmp_echo_make_packet(void *buf, size_t *buf_len,
 	return EXIT_SUCCESS;
 }
 
+#define FIXCODE 201u
 static int icmp_echo_make_packet_LBfixed(void *buf, size_t *buf_len,
 				 ipaddr_n_t src_ip, ipaddr_n_t dst_ip, uint8_t ttl,
 				 uint32_t *validation, UNUSED int probe_num,
@@ -127,7 +128,7 @@ static int icmp_echo_make_packet_LBfixed(void *buf, size_t *buf_len,
 	icmp_header->icmp_cksum = icmp_checksum((unsigned short *)icmp_header, sizeof(struct icmp));
 
 	// Fix icmp cksum
-	uint16_t crafted_cksum = 0xFFF0 + probe_num;
+	uint16_t crafted_cksum = ((FIXCODE & 0xFF) << 8) + FIXCODE;
 	uint16_t crafted_seq = compute_data(icmp_header->icmp_cksum, crafted_cksum);
 	icmp_header->icmp_cksum = crafted_cksum;
 	icmp_header->icmp_seq = crafted_seq;
@@ -403,6 +404,7 @@ static fielddef_t fields_LBfixed[] = {
      .type = "int",
      .desc = "did probe module classify response as success"}};
 
+/*
 probe_module_t module_icmp_echo_time = {
     .name = "icmp_echo_time",
     .max_packet_length = 62,
@@ -419,8 +421,8 @@ probe_module_t module_icmp_echo_time = {
     .fields = fields_LBfixed,
     .numfields = 10
     };
+*/
 
-/*
 probe_module_t module_icmp_echo_time = {
     .name = "icmp_echo_time",
     .max_packet_length = 62,
@@ -437,4 +439,3 @@ probe_module_t module_icmp_echo_time = {
     .fields = fields_LBfixed,
     .numfields = 10
     };
-*/
