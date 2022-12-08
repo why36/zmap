@@ -202,6 +202,7 @@ void fs_add_null_icmp(fieldset_t *fs)
 	fs_add_uint64(fs, "icmp_timestamp", 0);
 	fs_add_uint64(fs, "icmp_elapsed", 0);
 	fs_add_uint64(fs, "icmp_rtt", 0);
+	fs_add_uint64(fs,"origin_ttl",0);
 	fs_add_null(fs, "icmp_unreach_str");
 }
 
@@ -213,6 +214,7 @@ void fs_add_failure_no_port(fieldset_t *fs)
 	fs_add_uint64(fs, "icmp_timestamp", 0);
 	fs_add_uint64(fs, "icmp_elapsed", 0);
 	fs_add_uint64(fs, "icmp_rtt", 0);
+	fs_add_uint64(fs,"origin_ttl",0);
 	fs_add_null(fs, "icmp_unreach_str");
 }
 
@@ -246,12 +248,13 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 	struct icmp *icmp = get_icmp_header(ip, len);
 	assert(icmp);
 	struct ip *ip_inner = get_inner_ip_header(icmp, len);
+	//fprintf(stderr,"ttl: %hd ",ip_inner->ip_id);
 	fs_modify_string(fs, "saddr", make_ip_str(ip_inner->ip_dst.s_addr), 1);
 	fs_add_string(fs, "icmp_responder", make_ip_str(ip->ip_src.s_addr), 1);
 	fs_add_uint64(fs, "icmp_type", icmp->icmp_type);
 	fs_add_uint64(fs, "icmp_code", icmp->icmp_code);
-	// if (((icmp->icmp_type == ICMP_TIMXCEED) && (icmp->icmp_code == ICMP_TIMXCEED_INTRANS)) || (icmp->icmp_type == ICMP_UNREACH)) {
-	if (icmp->icmp_type == ICMP_UNREACH) {
+	if (((icmp->icmp_type == ICMP_TIMXCEED) && (icmp->icmp_code == ICMP_TIMXCEED_INTRANS)) || (icmp->icmp_type == ICMP_UNREACH)) {
+	//if (icmp->icmp_type == ICMP_UNREACH) {
 		if (ip_inner->ip_p == IPPROTO_UDP) {
 
 			struct udphdr *udp_header = (struct udphdr *) ((char *)ip_inner + 4 * ip_inner->ip_hl);
@@ -272,7 +275,7 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 			fs_add_uint64(fs, "icmp_timestamp", timestamp);
 			fs_add_uint64(fs, "icmp_elapsed", elapsed);
 			fs_add_uint64(fs, "icmp_rtt", rtt);
-
+			fs_add_uint64(fs,"origin_ttl",ip_inner->ip_id);
 			if (icmp->icmp_code <= ICMP_UNREACH_PRECEDENCE_CUTOFF) {
 				fs_add_constchar(fs, "icmp_unreach_str",
 						icmp_unreach_strings[icmp->icmp_code]);
@@ -283,12 +286,14 @@ void fs_populate_icmp_from_iphdr_latency(struct ip *ip, size_t len, fieldset_t *
 			fs_add_uint64(fs, "icmp_timestamp", 0);
 			fs_add_uint64(fs, "icmp_elapsed", 0);
 			fs_add_uint64(fs, "icmp_rtt", 0);
+			fs_add_uint64(fs,"origin_ttl",0);
 			fs_add_constchar(fs, "icmp_unreach_str", "unknown");
 		}
 	} else {
 		fs_add_uint64(fs, "icmp_timestamp", 0);
 		fs_add_uint64(fs, "icmp_elapsed", 0);
 		fs_add_uint64(fs, "icmp_rtt", 0);
+		fs_add_uint64(fs,"origin_ttl",0);
 		fs_add_constchar(fs, "icmp_unreach_str", "unknown");
 	}
 
@@ -387,3 +392,4 @@ unsigned short compute_data(unsigned short start_cksum, unsigned short target_ck
     }
     return answer;
 }
+ 

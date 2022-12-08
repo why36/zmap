@@ -52,11 +52,12 @@
     {.name = "icmp_timestamp", .type = "int", .desc = "icmp timestamp: relative sending time"}, \
     {.name = "icmp_elapsed", .type = "int", .desc = "icmp elapsed: relative receiving time"}, \
     {.name = "icmp_rtt", .type = "int", .desc = "icmp rtt: absolute rtt, in 0.1 millisecond (10^-4 second)"}, \
+	{.name = "origin_ttl", .type = "int", .desc = "original ttl when probed"}, \
     {.name = "icmp_unreach_str", \
      .type = "string", \
      .desc = "for icmp_unreach responses, the string version of icmp_code (e.g. network-unreach)"}
 
-#define ICMP_FIELDSET_LEN 4
+#define ICMP_FIELDSET_LEN 8
 
 
 typedef unsigned short __attribute__((__may_alias__)) alias_unsigned_short;

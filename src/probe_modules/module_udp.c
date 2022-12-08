@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
-
+#include <time.h>
 #include <errno.h>
 
 #include "../../lib/blocklist.h"
@@ -322,9 +322,10 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	ip_header->ip_src.s_addr = src_ip;
 	ip_header->ip_dst.s_addr = dst_ip;
 	ip_header->ip_ttl = ttl;
-	udp_header->uh_sport =
-	    htons(get_src_port(num_ports, probe_num, validation));
-
+	ip_header->ip_id = (unsigned short) ttl;
+	// udp_header->uh_sport =
+	//     htons(get_src_port(num_ports, probe_num, validation));
+	udp_header->uh_sport=htons(40000);
 	char *payload = (char *)&udp_header[1];
 
 	/* calculate sending time */
@@ -342,6 +343,8 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	// udp_header->uh_dport = htons(49152 + cyclic_ele);
 	// udp_header->uh_dport = htons(33434);
 	udp_header->uh_dport = htons(65535);
+	//srand((unsigned)time( NULL ) );
+	//udp_header->uh_dport = htons(49152 + rand() % 16383);
 
 	/* Update the IP and UDP headers to match the new payload length */
 	int payload_len = 2;
@@ -354,6 +357,8 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 
 	/* compute UDP checksum */
 	memset(payload, 0, 2);
+	//memset(payload, ttl, 1);
+	//fprintf(stderr,"ttl: %x\n",*(payload+1));
 	u_short udp_packet_len = sizeof(struct udphdr) + payload_len;
 	udp_header->uh_sum = 0;
 	udp_header->uh_sum= p_cksum(ip_header, (u_short *) udp_header, udp_packet_len);
@@ -494,6 +499,7 @@ void udp_process_latency_packet(const u_char *packet, UNUSED uint32_t len,
 			struct timespec ts)
 {
 	struct ip *ip_hdr = (struct ip *)&packet[sizeof(struct ether_header)];
+	//fprintf(stderr,"ttl: %hd ",ip_hdr->ip_id);
 	if (ip_hdr->ip_p == IPPROTO_ICMP) {
 		fs_add_constchar(fs, "classification", "icmp");
 		fs_add_bool(fs, "success", 0);
@@ -562,7 +568,7 @@ int udp_do_validate_packet(const struct ip *ip_hdr, uint32_t len,
 		uint16_t dport = ntohs(udp->uh_dport);
 		uint16_t sport = ntohs(udp->uh_sport);
 		if (dport != zconf.target_port) {
-			return PACKET_INVALID;
+			return PACKET_VALID;
 		}
 		if (!check_dst_port(sport, num_ports, validation)) {
 			return PACKET_INVALID;
