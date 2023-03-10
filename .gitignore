@@ -35,3 +35,9 @@ CMakeCache.txt
 install_manifest.txt
 _CPack_Packages/*
 src/ztests
+result*
+ips*
+nohup.out
+tmp.csv
+us_1k.txt
+src/complements*

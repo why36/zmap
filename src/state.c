@@ -63,6 +63,7 @@ struct state_conf zconf = {.log_level = LOG_INFO,
 			   .data_link_size = 0,
 			   .default_mode = 0,
 			   .no_header_row = 0,
+			   .complement_flag = 0
 };
 
 void init_empty_global_configuration(struct state_conf *c) {

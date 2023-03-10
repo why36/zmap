@@ -325,8 +325,40 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	ip_header->ip_id = (unsigned short) ttl;
 	// udp_header->uh_sport =
 	//     htons(get_src_port(num_ports, probe_num, validation));
-	udp_header->uh_sport=htons(40000);
+	
 	char *payload = (char *)&udp_header[1];
+
+	udp_header->uh_sport=htons(80);
+	if(zconf.complement_flag == 1){
+		// FILE * r=fopen("complements.csv","r");
+		// char target_ip[20];
+		// int com_port;
+		// while(fscanf(r,"%s%d",target_ip,&com_port)!=EOF){
+		// 	ipaddr_n_t target_ip_int;
+		// 	int ret = inet_pton(AF_INET,target_ip,&target_ip_int);
+		// 	//printf('%d\n',ret);
+		// 	if(dst_ip == target_ip_int){
+		// 		break;
+		// 		//printf('match!\n');
+		// 		//printf("%s\t%d\t%d\n",target_ip,port,target_ip_int);
+		// 	}else{
+		// 		com_port = 24000;
+		// 	}
+			
+		// }
+		// fclose(r);
+		udp_header->uh_sport = htons(24000);
+		udp_header->uh_dport = htons(33434);
+	}else{
+		//srand((unsigned)time( NULL ) );
+		
+		udp_header->uh_dport = htons(49152 + dst_ip % 16383);
+		//udp_header->uh_sport = htons(24000);
+	}
+	
+
+
+
 
 	/* calculate sending time */
 	struct timeval current;
@@ -342,7 +374,7 @@ int udp_make_latency_packet(void *buf, size_t *buf_len, ipaddr_n_t src_ip,
 	// cyclic_ele = (cyclic_ele * 11) % 16381;
 	// udp_header->uh_dport = htons(49152 + cyclic_ele);
 	// udp_header->uh_dport = htons(33434);
-	udp_header->uh_dport = htons(65535);
+	//udp_header->uh_dport = htons(65535);
 	//srand((unsigned)time( NULL ) );
 	//udp_header->uh_dport = htons(49152 + rand() % 16383);
 

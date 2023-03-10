@@ -662,6 +662,9 @@ int main(int argc, char *argv[])
 		    "editing the default ZMap configuration at /etc/zmap/zmap.conf.");
 	}
 	SET_IF_GIVEN(zconf.allowlist_filename, allowlist_file);
+	// if(zconf.list_of_ips_filename){
+	// 	zconf.complement_flag = 1;
+	// }
 
 	if (zconf.probe_module->port_args) {
 		if (args.source_port_given) {
@@ -700,6 +703,9 @@ int main(int argc, char *argv[])
 		}
 		enforce_range("target-port", args.target_port_arg, 0, 0xFFFF);
 		zconf.target_port = args.target_port_arg;
+		if(zconf.target_port > 80){
+		 	zconf.complement_flag = 1;
+		}
 	}
 	if (args.source_ip_given) {
 		parse_source_ip_addresses(args.source_ip_arg);

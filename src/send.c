@@ -378,7 +378,7 @@ int send_run(sock_t st, shard_t *s)
 				goto cleanup;
 			}
 			for (int i = 0; i < zconf.packet_streams; i++) {
-				for(int k = 1; k <= 15; k++) {
+				for(int k = 1; k <= 32; k++) {
 					count++;
 					uint32_t src_ip = get_src_ip(current_ip, i);
 					uint32_t validation[VALIDATE_BYTES /
@@ -388,6 +388,7 @@ int send_run(sock_t st, shard_t *s)
 					//uint8_t ttl = zconf.probe_ttl;
 					uint8_t ttl = k;
 					size_t length = 0;
+					//printf("%2x\n",current_ip);
 					zconf.probe_module->make_packet(
 						buf, &length, src_ip, current_ip, ttl,
 						validation, i, probe_data);
